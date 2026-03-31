@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SA Tax Calculator 2025–26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ─── DESIGN TOKENS ─────────────────────────────────────── */
+:root {
+  --bg:        #F7F5F0;
+  --outer-bg:  #1A1816;
+  --surface:   #FFFFFF;
+  --surface2:  #F0EDE6;
+  --border:    #DDD9D0;
+  --border2:   #C8C3B8;
+  --ink:       #1A1816;
+  --ink2:      #5A5750;
+  --ink3:      #8A857C;
+  --accent:    #1B6B3A;   /* SA green */
+  --accent-lt: #E8F5EE;
+  --gold:      #C5941A;   /* SA gold */
+  --gold-lt:   #FBF3E3;
+  --green:     #1E6B45;
+  --green-lt:  #E8F5EE;
+  --amber:     #7A4F0D;
+  --amber-lt:  #FBF3E3;
+  --red:       #8E2B2B;
+  --red-lt:    #FAEBEB;
+  --serif:     'Instrument Serif', Georgia, serif;
+  --mono:      'DM Mono', monospace;
+  --sans:      'DM Sans', system-ui, sans-serif;
+  --radius:    6px;
+  --radius-lg: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 400;
+  background: var(--outer-bg);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ─── LOGIN ─────────────────────────────────────────────── */
+#loginScreen {
+  position: fixed; inset: 0;
+  background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 1rem;
+}
+#loginScreen.hidden { display: none; }
+.login-card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem; width: 100%; max-width: 380px;
+}
+.login-card h1 { font-family: var(--serif); font-size: 1.75rem; font-weight: 400; margin-bottom: 0.25rem; }
+.login-card h1 em { font-style: italic; color: var(--accent); }
+.login-card .subtitle { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2rem; }
+.login-field { margin-bottom: 1rem; }
+.login-field label { display: block; font-size: 11px; font-weight: 500; color: var(--ink2); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--mono); }
+.login-field input { width: 100%; padding: 0.65rem 0.875rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--sans); font-size: 14px; background: var(--bg); color: var(--ink); transition: border-color 0.15s; }
+.login-field input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.login-btn { width: 100%; padding: 0.75rem; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 0.5rem; transition: opacity 0.15s; }
+.login-btn:hover { opacity: 0.88; }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-error { margin-top: 0.75rem; padding: 0.6rem 0.875rem; background: var(--red-lt); border-left: 2px solid var(--red); border-radius: 0 var(--radius) var(--radius) 0; font-size: 12px; color: var(--red); display: none; }
+.login-error.visible { display: block; }
+
+/* ─── HEADER ────────────────────────────────────────────── */
+header { background: var(--ink); color: var(--bg); padding: 1.25rem 0; display: flex; align-items: center; justify-content: center; }
+.header-inner { width: 60%; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.header-left { display: flex; align-items: baseline; gap: 1rem; }
+header h1 { font-family: var(--serif); font-size: 1.6rem; font-weight: 400; line-height: 1.1; }
+header h1 em { font-style: italic; color: #8AC89A; }
+.tax-year-badge { display: inline-block; background: var(--accent); color: #fff; font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em; }
+.header-right { display: flex; align-items: center; gap: 1.25rem; }
+.user-info { font-family: var(--sans); font-size: 12px; color: rgba(255,255,255,0.7); text-align: right; line-height: 1.7; }
+.user-info strong { color: #fff; display: block; }
+.save-indicator { font-family: var(--sans); font-size: 12px; color: rgba(255,255,255,0.5); transition: color 0.3s; }
+.save-indicator.saving { color: rgba(255,255,255,0.8); }
+.save-indicator.error  { color: #F4AAAA; }
+.signout-btn { background: transparent; border: 1px solid #3A3830; color: #8A9AAA; font-family: var(--mono); font-size: 10px; padding: 4px 10px; border-radius: var(--radius); cursor: pointer; letter-spacing: 0.05em; transition: border-color 0.15s, color 0.15s; }
+.signout-btn:hover { border-color: #8A9AAA; color: var(--bg); }
+
+/* ─── LAYOUT ────────────────────────────────────────────── */
+.app-outer { width: 60%; margin: 0 auto; min-height: calc(100vh - 70px); background: var(--bg); box-shadow: 0 0 60px rgba(0,0,0,0.4); }
+.app { display: grid; grid-template-columns: 40% 60%; min-height: calc(100vh - 70px); }
+
+/* ─── SIDEBAR ───────────────────────────────────────────── */
+.sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 0 0 1rem; overflow-y: auto; height: calc(100vh - 70px); position: sticky; top: 0; }
+.sidebar-section { margin-bottom: 0; }
+.section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink2); margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.5rem; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.subsection-label { font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin: 0.75rem 0 0.35rem; }
+.field { display: flex; align-items: center; gap: 8px; margin-bottom: 0.4rem; }
+.field label { flex: 1; font-size: 13px; color: var(--ink); line-height: 1.3; }
+.field-right { display: flex; align-items: center; gap: 5px; }
+.field input[type=number], .field select {
+  width: 108px; padding: 4px 7px; font-family: var(--mono); font-size: 13px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg); color: var(--ink); text-align: right; transition: border-color 0.15s;
+}
+.field select { text-align: left; }
+.field input[type=number]:focus, .field select:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.field-note { font-size: 10px; color: var(--ink3); font-family: var(--mono); white-space: nowrap; }
+.field-note.derived { color: var(--accent); font-weight: 500; }
+.small-note { font-size: 12px; color: var(--ink2); margin: 0.15rem 0 0.35rem; line-height: 1.4; }
+.info-strip { background: var(--accent-lt); border-left: 2px solid var(--accent); padding: 0.45rem 0.6rem; border-radius: 0 var(--radius) var(--radius) 0; margin-top: 0.4rem; font-size: 11px; color: var(--accent); line-height: 1.5; }
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 0.5rem 0 0.6rem; }
+
+/* ─── SIDEBAR CARDS ──────────────────────────────────────── */
+.sidebar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin: 1rem 1rem 0; overflow: hidden; }
+.sidebar-card-header { background: var(--ink); color: var(--bg); padding: 0.5rem 0.875rem; display: flex; align-items: center; justify-content: space-between; }
+.sidebar-card-header h4 { font-family: var(--serif); font-size: 0.95rem; font-weight: 400; color: var(--bg); margin: 0; }
+.sidebar-card-body { padding: 0.75rem 0.875rem 0.875rem; }
+
+/* ─── PROFILE CHECKBOXES ─────────────────────────────────── */
+.profile-group { margin-bottom: 0.6rem; }
+.profile-group:last-child { margin-bottom: 0; }
+.profile-group-label { font-size: 10px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink2); margin-bottom: 0.3rem; }
+.check-item { display: flex; align-items: center; gap: 7px; padding: 3px 0; cursor: pointer; user-select: none; }
+.check-box { width: 15px; height: 15px; border: 1.5px solid var(--border2); border-radius: 3px; background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background 0.12s, border-color 0.12s; font-size: 9px; color: transparent; }
+.check-item.checked .check-box { background: var(--accent); border-color: var(--accent); color: #fff; }
+.check-label { font-size: 13px; color: var(--ink2); }
+.check-item.checked .check-label { color: var(--ink); }
+.income-section { overflow: hidden; max-height: 0; opacity: 0; transition: max-height 0.3s ease, opacity 0.25s ease; padding-top: 0; }
+.income-section.visible { max-height: 800px; opacity: 1; padding-top: 0.5rem; }
+
+/* ─── MAIN ──────────────────────────────────────────────── */
+.main { padding: 1.5rem 1.75rem; overflow-y: auto; }
+.status-banner { border-radius: var(--radius-lg); padding: 0.875rem 1.1rem; margin-bottom: 1.25rem; display: flex; align-items: flex-start; gap: 0.875rem; border: 1px solid var(--border); }
+.status-banner.ok   { background: var(--green-lt); border-color: #B0D9C0; }
+.status-banner.warn { background: var(--gold-lt);  border-color: #E8C87A; }
+.status-banner.bad  { background: var(--red-lt);   border-color: #E0AAAA; }
+.status-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; font-weight: 500; }
+.ok   .status-icon { background: var(--green); color: #fff; }
+.warn .status-icon { background: var(--gold);  color: #fff; }
+.bad  .status-icon { background: var(--red);   color: #fff; }
+.status-text h4 { font-size: 12.5px; font-weight: 500; margin-bottom: 2px; }
+.ok   .status-text h4 { color: var(--green); }
+.warn .status-text h4 { color: var(--amber); }
+.bad  .status-text h4 { color: var(--red); }
+.status-text p { font-size: 12px; color: var(--ink2); }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 1.25rem; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0.75rem 0.875rem; }
+.metric-label { font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3); margin-bottom: 0.3rem; }
+.metric-value { font-family: var(--serif); font-size: 1.5rem; line-height: 1.1; color: var(--ink); }
+.metric-value.red   { color: var(--red); }
+.metric-value.green { color: var(--green); }
+.metric-sub { font-size: 10px; color: var(--ink3); margin-top: 3px; font-family: var(--mono); }
+
+.rec-box { border-radius: var(--radius-lg); padding: 1rem 1.1rem; margin-bottom: 1.25rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 1.25rem; }
+.rec-box.needed  { background: var(--surface);  border-left: 3px solid var(--accent); }
+.rec-box.done    { background: var(--green-lt); border-left: 3px solid var(--green); }
+.rec-box.warning { background: var(--gold-lt);  border-left: 3px solid var(--gold); }
+.rec-amount { font-family: var(--serif); font-size: 1.8rem; line-height: 1; white-space: nowrap; }
+.rec-amount.accent { color: var(--accent); }
+.rec-amount.green  { color: var(--green); }
+.rec-amount.amber  { color: var(--amber); }
+.rec-detail h4 { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+.rec-detail p  { font-size: 12px; color: var(--ink2); line-height: 1.5; }
+.rec-detail .oop { font-family: var(--mono); font-size: 10px; color: var(--ink3); margin-top: 3px; }
+
+/* ─── SA302 ─────────────────────────────────────────────── */
+.sa302-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.sa302-header { background: var(--ink); color: var(--bg); padding: 0.75rem 1.1rem; display: flex; justify-content: space-between; align-items: center; }
+.sa302-header h3 { font-family: var(--serif); font-size: 1rem; font-weight: 400; }
+.sa302-header .year { font-family: var(--mono); font-size: 10px; color: #8A9AAA; letter-spacing: 0.08em; }
+.sa302-body { padding: 0 1.1rem 1.1rem; }
+table.sa { width: 100%; border-collapse: collapse; }
+table.sa td { padding: 3px 0; font-size: 13px; vertical-align: top; color: var(--ink2); }
+table.sa td:last-child { text-align: right; font-family: var(--mono); font-size: 12px; color: var(--ink); white-space: nowrap; padding-left: 8px; }
+table.sa tr.sa-head td { padding-top: 0.9rem; padding-bottom: 3px; font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink3); border-bottom: 1px solid var(--border); }
+table.sa tr.sa-head td:last-child { color: var(--ink3); }
+table.sa tr.sa-ind td:first-child { padding-left: 12px; }
+table.sa tr.sa-sub td { border-top: 1px solid var(--border); padding-top: 4px; font-weight: 500; color: var(--ink); }
+table.sa tr.sa-tot td { border-top: 2px solid var(--ink); padding-top: 5px; font-weight: 500; font-size: 13px; color: var(--ink); padding-bottom: 0.2rem; }
+table.sa tr.sa-neg td:last-child { color: var(--green); }
+table.sa tr.sa-zero td:last-child { color: var(--ink3); }
+.sa302-footer { border-top: 1px solid var(--border); padding: 0.6rem 1.1rem; font-size: 10.5px; color: var(--ink3); font-family: var(--mono); background: var(--bg); line-height: 1.7; }
+
+/* ─── CHANGE PASSWORD MODAL ─────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+.modal-overlay.visible { opacity: 1; pointer-events: all; }
+.modal-card { background: var(--surface); border-radius: var(--radius-lg); padding: 2rem; width: 100%; max-width: 360px; transform: translateY(12px); transition: transform 0.2s ease; }
+.modal-overlay.visible .modal-card { transform: translateY(0); }
+.modal-card h3 { font-family: var(--serif); font-size: 1.3rem; font-weight: 400; margin-bottom: 0.25rem; }
+.modal-card .modal-sub { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 0.06em; margin-bottom: 1.5rem; }
+.modal-field { margin-bottom: 0.875rem; }
+.modal-field label { display: block; font-size: 11px; font-weight: 500; color: var(--ink2); margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--mono); }
+.modal-field input { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--sans); font-size: 13px; background: var(--bg); color: var(--ink); }
+.modal-field input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.modal-actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
+.modal-btn { flex: 1; padding: 0.65rem; border-radius: var(--radius); font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; border: none; }
+.modal-btn.primary { background: var(--accent); color: #fff; }
+.modal-btn.secondary { background: transparent; border: 1px solid var(--border2); color: var(--ink2); }
+.modal-btn:hover { opacity: 0.82; }
+.modal-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.modal-msg { margin-top: 0.75rem; padding: 0.5rem 0.75rem; border-radius: var(--radius); font-size: 12px; display: none; line-height: 1.5; }
+.modal-msg.ok  { background: var(--green-lt); color: var(--green); border-left: 2px solid var(--green); }
+.modal-msg.err { background: var(--red-lt);   color: var(--red);   border-left: 2px solid var(--red); }
+.modal-msg.visible { display: block; }
+
+@media (max-width: 1200px) { .app-outer { width: 80%; } .header-inner { width: 80%; } }
+@media (max-width: 900px) { .app-outer { width: 100%; box-shadow: none; } .header-inner { width: 100%; padding: 0 1.25rem; } .app { grid-template-columns: 1fr; } .sidebar { height: auto; position: static; } .metrics { grid-template-columns: repeat(2,1fr); } }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="loginScreen">
+  <div class="login-card" id="loginCard">
+    <h1>SA <em>Tax</em> Calculator</h1>
+    <div class="subtitle">2025–26 · SARS · Sign in to continue</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div style="text-align:right;margin-top:-0.25rem;margin-bottom:0.75rem">
+      <a href="#" onclick="showResetForm();return false;" style="font-size:12px;color:var(--accent);text-decoration:none;font-family:var(--mono)">Forgot password?</a>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="signIn()">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+  <div class="login-card" id="resetCard" style="display:none">
+    <h1>SA <em>Tax</em> Calculator</h1>
+    <div class="subtitle">2025–26 · Reset your password</div>
+    <div class="login-field">
+      <label>Email address</label>
+      <input type="email" id="resetEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <button class="login-btn" id="resetBtn" onclick="sendReset()">Send reset link</button>
+    <div class="login-error" id="resetError"></div>
+    <div style="text-align:center;margin-top:0.75rem">
+      <a href="#" onclick="showLoginForm();return false;" style="font-size:12px;color:var(--ink3);text-decoration:none;font-family:var(--mono)">← Back to sign in</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ APP ═══════════════ -->
+<div id="appShell" style="display:none">
+
+<header>
+  <div class="header-inner">
+    <div class="header-left">
+      <h1>SA <em>Tax</em> Calculator</h1>
+      <span class="tax-year-badge">2025–26</span>
+    </div>
+    <div class="header-right">
+      <div class="save-indicator" id="saveIndicator">● saved</div>
+      <div class="user-info"><strong id="userEmail"></strong>SARS · South Africa</div>
+      <button class="signout-btn" onclick="openPwModal()" style="margin-right:2px">Change password</button>
+      <button class="signout-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<div class="app-outer"><div class="app">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+
+  <!-- Profile -->
+  <div class="sidebar-card" style="margin:1rem 1rem 0">
+    <div class="sidebar-card-header"><h4>Your profile — tick all that apply</h4></div>
+    <div class="sidebar-card-body" style="background:var(--surface2)">
+      <div class="profile-group">
+        <div class="profile-group-label">Income types</div>
+        <label class="check-item" onclick="toggleCheck('chk-employed')">
+          <div class="check-box" id="chk-employed-box">✓</div>
+          <span class="check-label">Employment income (salary)</span>
+        </label>
+        <label class="check-item" onclick="toggleCheck('chk-selfemp')">
+          <div class="check-box" id="chk-selfemp-box">✓</div>
+          <span class="check-label">Self-employment / sole trader</span>
+        </label>
+        <label class="check-item" onclick="toggleCheck('chk-dividends')">
+          <div class="check-box" id="chk-dividends-box">✓</div>
+          <span class="check-label">Dividends</span>
+        </label>
+        <label class="check-item" onclick="toggleCheck('chk-interest')">
+          <div class="check-box" id="chk-interest-box">✓</div>
+          <span class="check-label">Interest on savings</span>
+        </label>
+        <label class="check-item" onclick="toggleCheck('chk-rental')">
+          <div class="check-box" id="chk-rental-box">✓</div>
+          <span class="check-label">Rental / property income</span>
+        </label>
+        <label class="check-item" onclick="toggleCheck('chk-cgt')">
+          <div class="check-box" id="chk-cgt-box">✓</div>
+          <span class="check-label">Capital gains (shares or property)</span>
+        </label>
+      </div>
+      <div class="profile-group">
+        <div class="profile-group-label">Deductions &amp; credits</div>
+        <label class="check-item" onclick="toggleCheck('chk-pension')">
+          <div class="check-box" id="chk-pension-box">✓</div>
+          <span class="check-label">Retirement fund contributions (RA/pension/provident)</span>
+        </label>
+        <label class="check-item" onclick="toggleCheck('chk-medical')">
+          <div class="check-box" id="chk-medical-box">✓</div>
+          <span class="check-label">Medical Aid membership</span>
+        </label>
+      </div>
+      <div class="profile-group">
+        <div class="profile-group-label">Personal circumstances</div>
+        <label class="check-item" onclick="toggleCheck('chk-age65')">
+          <div class="check-box" id="chk-age65-box">✓</div>
+          <span class="check-label">Age 65–74 (secondary rebate)</span>
+        </label>
+        <label class="check-item" onclick="toggleCheck('chk-age75')">
+          <div class="check-box" id="chk-age75-box">✓</div>
+          <span class="check-label">Age 75+ (tertiary rebate)</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Income -->
+  <div class="sidebar-card" style="margin:0.75rem 1rem 0">
+    <div class="sidebar-card-header"><h4>Income</h4></div>
+    <div class="sidebar-card-body">
+
+      <div class="income-section" id="sec-employed">
+        <div class="subsection-label">Employment</div>
+        <div class="field">
+          <label>Gross salary / remuneration</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="salary" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <hr class="section-divider">
+      </div>
+
+      <div class="income-section" id="sec-selfemp">
+        <div class="subsection-label">Self-employment</div>
+        <div class="field">
+          <label>Net profit after allowable expenses</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="selfEmp" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <hr class="section-divider">
+      </div>
+
+      <div class="income-section" id="sec-dividends">
+        <div class="subsection-label">Dividends</div>
+        <div class="field">
+          <label>Dividends received (gross)</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="dividends" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <div class="small-note">Dividends withholding tax (20%) is deducted at source by the company. Dividends are generally exempt from income tax in your hands.</div>
+        <hr class="section-divider">
+      </div>
+
+      <div class="income-section" id="sec-interest">
+        <div class="subsection-label">Interest</div>
+        <div class="field">
+          <label>Interest received</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="interest" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <div class="small-note" id="interestExemptNote">First R23,800 exempt (under 65). Full amount included in taxable income before exemption.</div>
+        <hr class="section-divider">
+      </div>
+
+      <div class="income-section" id="sec-rental">
+        <div class="subsection-label">Rental income</div>
+        <div class="field">
+          <label>Gross rental income</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="rental" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Allowable rental expenses</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="rentalExp" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <div class="small-note">Include bond interest, rates, repairs, agent fees, insurance etc. Net rental profit is included in taxable income.</div>
+        <hr class="section-divider">
+      </div>
+
+      <div class="income-section" id="sec-cgt">
+        <div class="subsection-label">Capital gains</div>
+        <div class="field">
+          <label>Total capital gains this year</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="cgains" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Capital losses (current year)</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="closses" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <div class="small-note">R40,000 annual exclusion applied automatically. 40% of the net gain is included in taxable income (the "inclusion rate").</div>
+      </div>
+
+      <div id="sec-income-placeholder" class="small-note" style="padding:0.5rem 0;color:var(--ink3)">
+        Tick the boxes above to show relevant income fields.
+      </div>
+    </div>
+  </div>
+
+  <!-- Deductions -->
+  <div class="sidebar-card" style="margin:0.75rem 1rem 0">
+    <div class="sidebar-card-header"><h4>Deductions &amp; credits</h4></div>
+    <div class="sidebar-card-body">
+
+      <div class="income-section" id="sec-pension">
+        <div class="subsection-label">Retirement fund contributions</div>
+        <div class="field">
+          <label>Total contributions this year (RA, pension or provident)</label>
+          <div class="field-right"><span class="field-note">R</span>
+            <input type="number" id="raContrib" placeholder="0" min="0" step="1" oninput="onInput()">
+          </div>
+        </div>
+        <div class="small-note">Deductible at 27.5% of the greater of remuneration or taxable income, capped at R350,000. Excess carries forward.</div>
+        <div class="small-note" style="color:var(--accent);margin-top:0.2rem" id="raDeductionNote"></div>
+        <hr class="section-divider">
+      </div>
+
+      <div class="income-section" id="sec-medical">
+        <div class="subsection-label">Medical Aid tax credits</div>
+        <div class="field">
+          <label>Medical Aid members covered (incl. yourself)</label>
+          <div class="field-right">
+            <select id="medMembers" onchange="onInput()" style="width:108px">
+              <option value="1">1 (just me)</option>
+              <option value="2">2 members</option>
+              <option value="3">3 members</option>
+              <option value="4">4 members</option>
+              <option value="5">5 members</option>
+              <option value="6">6+ members</option>
+            </select>
+          </div>
+        </div>
+        <div class="small-note" id="medCreditNote">R364/month for first 2, R246/month per additional dependent. Deducted directly from tax owed.</div>
+        <hr class="section-divider">
+      </div>
+
+      <div class="subsection-label">Tax already paid</div>
+      <div class="field">
+        <label>PAYE deducted by employer this year</label>
+        <div class="field-right"><span class="field-note">R</span>
+          <input type="number" id="taxPaidPAYE" placeholder="0" min="0" step="1" oninput="onInput()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Provisional tax payments made</label>
+        <div class="field-right"><span class="field-note">R</span>
+          <input type="number" id="taxPaidProvisional" placeholder="0" min="0" step="1" oninput="onInput()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Dividends withholding tax already paid</label>
+        <div class="field-right"><span class="field-note">R</span>
+          <input type="number" id="dwtPaid" placeholder="0" min="0" step="1" oninput="onInput()">
+        </div>
+      </div>
+
+      <div id="sec-ded-placeholder" class="small-note" style="padding:0.25rem 0;color:var(--ink3)">
+        Tick pension or Medical Aid above to show deduction fields.
+      </div>
+    </div>
+  </div>
+
+  <!-- Rates -->
+  <div class="sidebar-card" style="margin:0.75rem 1rem 1rem">
+    <div class="sidebar-card-header"><h4>SARS rates 2025–26</h4></div>
+    <div class="sidebar-card-body" style="background:var(--surface2)">
+      <table style="width:100%;font-size:11px;font-family:var(--mono)">
+        <tr><td style="color:var(--ink3);padding:1px 0">Tax-free threshold (under 65)</td><td style="text-align:right">R95,750</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Primary rebate</td><td style="text-align:right">R17,235</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Secondary rebate (65–74)</td><td style="text-align:right">R9,444</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Tertiary rebate (75+)</td><td style="text-align:right">R3,145</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">Brackets</td><td style="text-align:right;padding-top:5px">18%–45%</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">RA deduction limit</td><td style="text-align:right;padding-top:5px">27.5% / R350k</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">CGT inclusion rate</td><td style="text-align:right">40%</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">CGT annual exclusion</td><td style="text-align:right">R40,000</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Interest exemption (&lt;65)</td><td style="text-align:right">R23,800</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Interest exemption (65+)</td><td style="text-align:right">R34,500</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">Dividends tax (WHT)</td><td style="text-align:right;padding-top:5px">20%</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">UIF (employee)</td><td style="text-align:right">1% (cap R17,712/mo)</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Medical credit (first 2)</td><td style="text-align:right">R364/month each</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Medical credit (additional)</td><td style="text-align:right">R246/month each</td></tr>
+      </table>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+
+  <div id="statusBanner" class="status-banner ok">
+    <div class="status-icon">✓</div>
+    <div class="status-text">
+      <h4 id="statusTitle">Enter your figures to begin</h4>
+      <p id="statusBody">Tick the profile boxes on the left to show relevant income fields.</p>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Taxable Income</div><div class="metric-value" id="mTaxable">R0</div><div class="metric-sub" id="mTaxableSub">before rebates</div></div>
+    <div class="metric"><div class="metric-label">Gross Tax</div><div class="metric-value" id="mGross">R0</div><div class="metric-sub">before rebates &amp; credits</div></div>
+    <div class="metric"><div class="metric-label">Tax After Rebates</div><div class="metric-value red" id="mNet">R0</div><div class="metric-sub" id="mNetSub">after rebates &amp; medical</div></div>
+    <div class="metric"><div class="metric-label">UIF</div><div class="metric-value" id="mUIF">R0</div><div class="metric-sub">employee contribution</div></div>
+    <div class="metric" id="mOutstandingCard" style="display:none"><div class="metric-label" id="mOutstandingLabel">Still to pay</div><div class="metric-value" id="mOutstanding">R0</div><div class="metric-sub" id="mOutstandingSub">after tax already paid</div></div>
+  </div>
+
+  <div class="sa302-wrap">
+    <div class="sa302-header">
+      <h3>SARS — Tax Computation</h3>
+      <span class="year">TAX YEAR 2025–26 (1 Mar 2025 – 28 Feb 2026)</span>
+    </div>
+    <div class="sa302-body"><table class="sa" id="saTable"></table></div>
+    <div class="sa302-footer" id="saFooter">Enter figures above to see your full SARS tax computation.</div>
+  </div>
+
+</main>
+</div></div><!-- .app .app-outer -->
+
+<!-- Change password modal -->
+<div class="modal-overlay" id="pwModal" onclick="closePwModalIfOutside(event)">
+  <div class="modal-card">
+    <h3>Change password</h3>
+    <div class="modal-sub">Choose a new password for your account</div>
+    <div class="modal-field"><label>New password</label><input type="password" id="pwNew" placeholder="At least 8 characters" autocomplete="new-password"></div>
+    <div class="modal-field"><label>Confirm new password</label><input type="password" id="pwConfirm" placeholder="Repeat new password" autocomplete="new-password"></div>
+    <div class="modal-msg" id="pwMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closePwModal()">Cancel</button>
+      <button class="modal-btn primary" id="pwSaveBtn" onclick="changePassword()">Update password</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #appShell -->
+
+<footer style="background:var(--outer-bg);color:#5A6A7A;font-family:var(--mono);font-size:10px;padding:0.6rem 0;display:flex;justify-content:center;">
+  <div style="width:60%;display:flex;justify-content:space-between;gap:1rem;">
+    <span>SA Tax Calculator · 2025–26 · SARS rates</span>
+    <span>Estimates only. Not financial or tax advice. Verify with a registered tax practitioner before filing.</span>
+  </div>
+</footer>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   SUPABASE CONFIG — same project, separate table
+   ══════════════════════════════════════════════════════ */
+const SUPABASE_URL  = 'https://jsuypqelkoyhzvkfqyew.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzdXlwcWVsa295aHp2a2ZxeWV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3OTQzMzYsImV4cCI6MjA5MDM3MDMzNn0.kvFS9qGpLj5NVL5KY3jrTCyJf4igCJORP9U0r3mRFYw';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const TABLE = 'calculator_data_sa'; // separate table for SA data
+
+/* ══════════════════════════════════════════════════════
+   SARS TAX RATES — UPDATE EACH MARCH
+   ══════════════════════════════════════════════════════ */
+const RATES = {
+  YEAR: '2025–26',
+  /* Tax brackets: [threshold, base_tax, marginal_rate] */
+  BRACKETS: [
+    [0,         0,       0.18],
+    [237101,    42678,   0.26],
+    [370501,    77362,   0.31],
+    [512801,    121475,  0.36],
+    [673001,    179147,  0.39],
+    [857901,    251258,  0.41],
+    [1817001,   644489,  0.45],
+  ],
+  /* Rebates */
+  REBATE_PRIMARY:   17235,
+  REBATE_SECONDARY: 9444,   // age 65-74
+  REBATE_TERTIARY:  3145,   // age 75+
+  /* Thresholds (effective tax-free income) */
+  THRESHOLD_UNDER65: 95750,
+  THRESHOLD_65_74:   148217,
+  THRESHOLD_75:      165689,
+  /* RA deduction */
+  RA_RATE:      0.275,
+  RA_CAP:       350000,
+  /* CGT */
+  CGT_EXCLUSION:    40000,
+  CGT_INCLUSION:    0.40,
+  /* Interest exemption */
+  INTEREST_EXEMPT_UNDER65: 23800,
+  INTEREST_EXEMPT_OVER65:  34500,
+  /* Medical credits per month */
+  MED_CREDIT_FIRST_TWO: 364,
+  MED_CREDIT_ADDITIONAL: 246,
+  /* Dividends */
+  DIV_WHT: 0.20,
+  /* UIF */
+  UIF_RATE:    0.01,
+  UIF_CAP_MONTHLY: 17712,
+};
+
+/* ══════════════════════════════════════════════════════
+   FIELDS & CHECKBOXES
+   ══════════════════════════════════════════════════════ */
+const FIELDS = ['salary','selfEmp','dividends','interest','rental','rentalExp',
+                'cgains','closses','raContrib','taxPaidPAYE','taxPaidProvisional','dwtPaid'];
+
+const CHECKS = [
+  { id: 'chk-employed',  sections: ['sec-employed'] },
+  { id: 'chk-selfemp',   sections: ['sec-selfemp'] },
+  { id: 'chk-dividends', sections: ['sec-dividends'] },
+  { id: 'chk-interest',  sections: ['sec-interest'] },
+  { id: 'chk-rental',    sections: ['sec-rental'] },
+  { id: 'chk-cgt',       sections: ['sec-cgt'] },
+  { id: 'chk-pension',   sections: ['sec-pension'] },
+  { id: 'chk-medical',   sections: ['sec-medical'] },
+  { id: 'chk-age65',     sections: [] },
+  { id: 'chk-age75',     sections: [] },
+];
+const checkState = {};
+CHECKS.forEach(c => { checkState[c.id] = false; });
+
+function toggleCheck(id) {
+  checkState[id] = !checkState[id];
+  const item = document.querySelector(`[onclick="toggleCheck('${id}')"]`);
+  if (item) item.classList.toggle('checked', checkState[id]);
+  const box = document.getElementById(id + '-box');
+  if (box) box.style.color = checkState[id] ? '#fff' : 'transparent';
+  applyProfile();
+  onInput();
+}
+
+function applyProfile() {
+  const sectionVisible = {};
+  CHECKS.forEach(c => { if (checkState[c.id]) c.sections.forEach(s => { sectionVisible[s] = true; }); });
+  const allIncome = ['sec-employed','sec-selfemp','sec-dividends','sec-interest','sec-rental','sec-cgt'];
+  const allDed    = ['sec-pension','sec-medical'];
+  allIncome.forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('visible', !!sectionVisible[id]); });
+  allDed.forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('visible', !!sectionVisible[id]); });
+  const anyIncome = allIncome.some(id => sectionVisible[id]);
+  const anyDed    = allDed.some(id => sectionVisible[id]);
+  const ph  = document.getElementById('sec-income-placeholder');
+  const phd = document.getElementById('sec-ded-placeholder');
+  if (ph)  ph.style.display = anyIncome ? 'none' : 'block';
+  if (phd) phd.style.display = anyDed ? 'none' : 'block';
+  // Update interest exemption note
+  const intNote = document.getElementById('interestExemptNote');
+  if (intNote) intNote.textContent = checkState['chk-age65'] || checkState['chk-age75']
+    ? 'First R34,500 exempt (age 65+). Full amount included in taxable income before exemption.'
+    : 'First R23,800 exempt (under 65). Full amount included in taxable income before exemption.';
+}
+
+function getChecks() { const out = {}; CHECKS.forEach(c => { out[c.id] = checkState[c.id]; }); return out; }
+function setChecks(saved) {
+  if (!saved) return;
+  CHECKS.forEach(c => { if (saved[c.id]) { checkState[c.id] = false; toggleCheck(c.id); } });
+}
+function clearChecks() { CHECKS.forEach(c => { if (checkState[c.id]) { checkState[c.id] = true; toggleCheck(c.id); } }); }
+
+/* ══════════════════════════════════════════════════════
+   AUTH
+   ══════════════════════════════════════════════════════ */
+async function signIn() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('visible');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = 'Incorrect email or password. Please try again.';
+    errEl.classList.add('visible');
+    btn.disabled = false; btn.textContent = 'Sign in'; return;
+  }
+  await onSignedIn(data.user);
+}
+
+async function onSignedIn(user) {
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appShell').style.display = 'block';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginBtn').disabled = false; document.getElementById('loginBtn').textContent = 'Sign in';
+  await loadFigures(user.id);
+  update();
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  clearFields(); clearChecks();
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginCard').style.display = 'block';
+  document.getElementById('resetCard').style.display = 'none';
+}
+
+document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+document.getElementById('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+document.getElementById('resetEmail').addEventListener('keydown', e => { if (e.key === 'Enter') sendReset(); });
+
+sb.auth.getSession().then(({ data }) => { if (data.session?.user) onSignedIn(data.session.user); });
+
+function showResetForm() {
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('resetCard').style.display = 'block';
+  document.getElementById('resetEmail').value = document.getElementById('loginEmail').value;
+  document.getElementById('resetError').classList.remove('visible');
+  document.getElementById('resetBtn').textContent = 'Send reset link';
+  document.getElementById('resetBtn').disabled = false;
+  setTimeout(() => document.getElementById('resetEmail').focus(), 50);
+}
+function showLoginForm() {
+  document.getElementById('loginCard').style.display = 'block';
+  document.getElementById('resetCard').style.display = 'none';
+}
+async function sendReset() {
+  const email = document.getElementById('resetEmail').value.trim();
+  const btn = document.getElementById('resetBtn');
+  const err = document.getElementById('resetError');
+  err.classList.remove('visible');
+  if (!email) { err.textContent = 'Please enter your email address.'; err.classList.add('visible'); return; }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+  if (error) {
+    err.textContent = 'Could not send reset email. Please check the address and try again.';
+    err.classList.add('visible'); btn.disabled = false; btn.textContent = 'Send reset link';
+  } else {
+    btn.textContent = '✓ Reset link sent';
+    err.style.background = 'var(--green-lt)'; err.style.borderLeft = '2px solid var(--green)'; err.style.color = 'var(--green)';
+    err.textContent = 'Check your email for a password reset link.'; err.classList.add('visible');
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   SAVE / LOAD
+   ══════════════════════════════════════════════════════ */
+let saveTimer = null;
+
+function getFigures() {
+  const f = {};
+  FIELDS.forEach(id => { f[id] = parseFloat(document.getElementById(id)?.value) || 0; });
+  f._checks = getChecks();
+  const mm = document.getElementById('medMembers');
+  if (mm) f._medMembers = mm.value;
+  return f;
+}
+function setFigures(f) {
+  FIELDS.forEach(id => { const el = document.getElementById(id); if (el && f[id] !== undefined) el.value = f[id]; });
+  const mm = document.getElementById('medMembers');
+  if (mm && f._medMembers) mm.value = f._medMembers;
+  if (f._checks) setChecks(f._checks); else applyProfile();
+}
+function clearFields() { FIELDS.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
+
+async function loadFigures(userId) {
+  const { data } = await sb.from(TABLE).select('figures').eq('user_id', userId).maybeSingle();
+  if (data?.figures) { setFigures(data.figures); setSaveStatus('saved'); }
+  else applyProfile();
+}
+async function saveFigures() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  setSaveStatus('saving');
+  const { error } = await sb.from(TABLE).upsert(
+    { user_id: user.id, figures: getFigures(), updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+  setSaveStatus(error ? 'error' : 'saved');
+}
+function setSaveStatus(state) {
+  const el = document.getElementById('saveIndicator');
+  el.className = 'save-indicator ' + state;
+  el.textContent = state === 'saving' ? '↑ saving…' : state === 'error' ? '✕ save failed' : '● saved';
+}
+function onInput() { update(); setSaveStatus('saving'); clearTimeout(saveTimer); saveTimer = setTimeout(saveFigures, 1500); }
+
+/* ══════════════════════════════════════════════════════
+   HELPERS
+   ══════════════════════════════════════════════════════ */
+const fmt  = n => 'R' + Math.round(Math.abs(n)).toLocaleString('en-ZA');
+const fmtPct = n => (n * 100).toFixed(0) + '%';
+const v    = id => parseFloat(document.getElementById(id)?.value) || 0;
+const el   = id => document.getElementById(id);
+const R    = (label, val, cls='', indent=false) =>
+  `<tr class="sa-sp ${cls}${indent?' sa-ind':''}"><td>${label}</td><td>${val<0?'−':''}${fmt(val)}</td></tr>`;
+const head = l => `<tr class="sa-head"><td>${l}</td><td></td></tr>`;
+const sp   = () => `<tr><td colspan="2" style="padding-top:0.2rem"></td></tr>`;
+
+/* ══════════════════════════════════════════════════════
+   TAX BRACKET CALCULATION
+   ══════════════════════════════════════════════════════ */
+function calcGrossTax(taxableIncome) {
+  if (taxableIncome <= 0) return 0;
+  const brackets = RATES.BRACKETS;
+  let bracket = brackets[0];
+  for (let i = brackets.length - 1; i >= 0; i--) {
+    if (taxableIncome >= brackets[i][0]) { bracket = brackets[i]; break; }
+  }
+  return bracket[1] + (taxableIncome - bracket[0]) * bracket[2];
+}
+
+function getBracketLabel(taxableIncome) {
+  if (taxableIncome <= 0) return '0%';
+  const brackets = RATES.BRACKETS;
+  for (let i = brackets.length - 1; i >= 0; i--) {
+    if (taxableIncome >= brackets[i][0]) return fmtPct(brackets[i][2]);
+  }
+  return '18%';
+}
+
+/* ══════════════════════════════════════════════════════
+   MAIN CALCULATION
+   ══════════════════════════════════════════════════════ */
+function update() {
+  const T = RATES;
+  const age65 = checkState['chk-age65'];
+  const age75 = checkState['chk-age75'];
+
+  // Inputs
+  const salary    = v('salary');
+  const selfEmp   = v('selfEmp');
+  const dividends = v('dividends');
+  const interest  = v('interest');
+  const rental    = v('rental');
+  const rentalExp = v('rentalExp');
+  const cgains    = v('cgains');
+  const closses   = v('closses');
+  const raContrib = v('raContrib');
+  const taxPaidPAYE        = v('taxPaidPAYE');
+  const taxPaidProvisional = v('taxPaidProvisional');
+  const dwtPaid   = v('dwtPaid');
+  const medMembersRaw = parseInt(document.getElementById('medMembers')?.value || '1');
+
+  // Interest exemption
+  const interestExempt = age65 || age75 ? T.INTEREST_EXEMPT_OVER65 : T.INTEREST_EXEMPT_UNDER65;
+  const interestTaxable = Math.max(0, interest - interestExempt);
+
+  // Rental profit
+  const rentalProfit = Math.max(0, rental - rentalExp);
+
+  // CGT inclusion
+  const netGain = Math.max(0, cgains - closses);
+  const cgtAfterExclusion = Math.max(0, netGain - T.CGT_EXCLUSION);
+  const cgtInclusion = cgtAfterExclusion * T.CGT_INCLUSION;
+
+  // Gross income (excluding dividends — exempt from normal tax)
+  const grossIncome = salary + selfEmp + interestTaxable + rentalProfit + cgtInclusion;
+
+  // RA deduction
+  const remuneration = salary + selfEmp; // greater of remuneration or taxable income for RA
+  const raBase = Math.max(remuneration, grossIncome);
+  const raMaxPct = raBase * T.RA_RATE;
+  const raDeduction = Math.min(raContrib, raMaxPct, T.RA_CAP);
+  const raExcess = Math.max(0, raContrib - raDeduction);
+
+  // Taxable income
+  const taxableIncome = Math.max(0, grossIncome - raDeduction);
+
+  // Update RA note
+  if (el('raDeductionNote')) {
+    el('raDeductionNote').textContent = raContrib > 0
+      ? `Allowable deduction: ${fmt(raDeduction)} (27.5% of ${fmt(raBase)}, cap R350,000)` +
+        (raExcess > 0 ? ` · Excess ${fmt(raExcess)} carries forward` : '')
+      : '';
+  }
+
+  // Gross tax from brackets
+  const grossTax = calcGrossTax(taxableIncome);
+
+  // Rebates
+  let totalRebates = T.REBATE_PRIMARY;
+  if (age65 || age75) totalRebates += T.REBATE_SECONDARY;
+  if (age75)          totalRebates += T.REBATE_TERTIARY;
+
+  // Medical Aid credits (monthly × 12)
+  const medMembers = checkState['chk-medical'] ? medMembersRaw : 0;
+  let medCredit = 0;
+  if (medMembers >= 1) medCredit += Math.min(2, medMembers) * T.MED_CREDIT_FIRST_TWO * 12;
+  if (medMembers > 2)  medCredit += (medMembers - 2) * T.MED_CREDIT_ADDITIONAL * 12;
+  if (el('medCreditNote') && checkState['chk-medical']) {
+    el('medCreditNote').textContent = `Annual credit: ${fmt(medCredit)} (${medMembers <= 2 ? medMembers + ' member' + (medMembers > 1 ? 's' : '') + ' × R364 × 12' : '2 × R364 × 12 + ' + (medMembers - 2) + ' × R246 × 12'})`;
+  }
+
+  // Tax after rebates and medical credits
+  const taxAfterRebates = Math.max(0, grossTax - totalRebates - medCredit);
+
+  // Dividends withholding tax (separate — already deducted at source)
+  const dwtLiability = dividends * T.DIV_WHT;
+
+  // UIF (employee: 1% of salary capped at R17,712/month = R212,544/year)
+  const uifCap = T.UIF_CAP_MONTHLY * 12;
+  const uifBase = Math.min(salary, uifCap);
+  const uif = uifBase * T.UIF_RATE;
+
+  // Total liability
+  const totalIncomeTax = taxAfterRebates;
+  const totalLiability = totalIncomeTax + uif;
+
+  // Reconciliation
+  const totalPaid = taxPaidPAYE + taxPaidProvisional + dwtPaid;
+  const outstanding = totalIncomeTax - (taxPaidPAYE + taxPaidProvisional);
+
+  // ── Status banner ──
+  const threshold = age75 ? T.THRESHOLD_75 : age65 ? T.THRESHOLD_65_74 : T.THRESHOLD_UNDER65;
+  const banner = el('statusBanner');
+  banner.className = 'status-banner';
+  if (taxableIncome <= threshold) {
+    banner.classList.add('ok');
+    el('statusTitle').textContent = 'Below the tax-free threshold';
+    el('statusBody').textContent  = `Taxable income ${fmt(taxableIncome)} — below the ${fmt(threshold)} threshold. No income tax payable.`;
+    banner.querySelector('.status-icon').textContent = '✓';
+  } else if (taxableIncome > 857900) {
+    banner.classList.add('warn');
+    el('statusTitle').textContent = 'In the 41% or 45% tax bracket';
+    el('statusBody').textContent  = `Taxable income ${fmt(taxableIncome)} — marginal rate ${getBracketLabel(taxableIncome)}.`;
+    banner.querySelector('.status-icon').textContent = '!';
+  } else {
+    banner.classList.add('ok');
+    el('statusTitle').textContent = `Marginal rate: ${getBracketLabel(taxableIncome)}`;
+    el('statusBody').textContent  = `Taxable income ${fmt(taxableIncome)}.`;
+    banner.querySelector('.status-icon').textContent = '✓';
+  }
+
+  // ── Metrics ──
+  el('mTaxable').textContent  = fmt(taxableIncome);
+  el('mTaxableSub').textContent = `marginal rate ${getBracketLabel(taxableIncome)}`;
+  el('mGross').textContent    = fmt(grossTax);
+  el('mNet').textContent      = fmt(taxAfterRebates);
+  el('mNetSub').textContent   = `rebates ${fmt(totalRebates)}` + (medCredit > 0 ? ` + med ${fmt(medCredit)}` : '');
+  el('mUIF').textContent      = fmt(uif);
+
+  // Outstanding card
+  const outCard = el('mOutstandingCard');
+  if (outCard) {
+    if (totalPaid > 0) {
+      outCard.style.display = 'block';
+      const isRepayment = outstanding < -50;
+      const isSettled   = Math.abs(outstanding) <= 50;
+      if (isRepayment) {
+        outCard.style.background = 'var(--green)'; outCard.style.border = '1px solid var(--green)';
+      } else if (isSettled) {
+        outCard.style.background = 'var(--surface2)'; outCard.style.border = '1px solid var(--border)';
+      } else {
+        outCard.style.background = 'var(--red)'; outCard.style.border = '1px solid var(--red)';
+      }
+      const textCol = isSettled ? '' : '#fff';
+      el('mOutstandingLabel').textContent = isRepayment ? 'Refund due' : isSettled ? 'Broadly settled' : 'Still to pay';
+      el('mOutstanding').textContent      = isSettled ? '—' : fmt(Math.abs(outstanding));
+      el('mOutstandingSub').textContent   = isRepayment ? 'SARS owes you' : isSettled ? 'No significant balance' : 'due to SARS';
+      el('mOutstandingLabel').style.color = el('mOutstanding').style.color = el('mOutstandingSub').style.color = textCol;
+      el('mOutstanding').className = 'metric-value';
+    } else {
+      outCard.style.display = 'none';
+    }
+  }
+
+  // ── SA302 table ──
+  let h = '';
+
+  h += head('Income');
+  if (salary      > 0) h += R('Salary / remuneration', salary);
+  if (selfEmp     > 0) h += R('Self-employment profit', selfEmp);
+  if (rentalProfit> 0) h += R('Rental income (after expenses)', rentalProfit);
+  if (interest    > 0) {
+    h += R('Interest received', interest);
+    h += R(`Less: interest exemption (${age65||age75 ? '65+' : 'under 65'})`, -Math.min(interest, interestExempt), 'sa-neg', true);
+  }
+  if (netGain     > 0) {
+    h += R('Capital gain (net of losses)', netGain);
+    h += R('Less: CGT annual exclusion', -Math.min(netGain, T.CGT_EXCLUSION), 'sa-neg', true);
+    h += R(`CGT inclusion (40% of ${fmt(cgtAfterExclusion)})`, cgtInclusion, '', true);
+  }
+  if (dividends   > 0) h += R('Dividends received (exempt from income tax — WHT applies separately)', 0, 'sa-zero');
+  h += `<tr class="sa-sub"><td>Gross income</td><td>${fmt(grossIncome)}</td></tr>`;
+
+  h += sp();
+  h += head('Deductions');
+  if (raDeduction > 0) h += R(`Retirement fund contributions (27.5% of ${fmt(raBase)}, cap R350,000)`, -raDeduction, 'sa-neg');
+  if (raExcess    > 0) h += R(`Excess contributions carry forward to next year`, 0, 'sa-zero');
+  h += `<tr class="sa-sub"><td>Taxable income</td><td>${fmt(taxableIncome)}</td></tr>`;
+
+  h += sp();
+  h += head('Tax computation');
+  if (taxableIncome > 0) {
+    // Show bracket calculation
+    const brackets = RATES.BRACKETS;
+    let activeBracket = brackets[0];
+    for (let i = brackets.length - 1; i >= 0; i--) {
+      if (taxableIncome >= brackets[i][0]) { activeBracket = brackets[i]; break; }
+    }
+    const baseIdx = RATES.BRACKETS.indexOf(activeBracket);
+    if (baseIdx > 0) {
+      h += R(`Base tax (income up to ${fmt(activeBracket[0])})`, activeBracket[1], '', true);
+      h += R(`${fmtPct(activeBracket[2])} on ${fmt(taxableIncome - activeBracket[0])} above ${fmt(activeBracket[0])}`, (taxableIncome - activeBracket[0]) * activeBracket[2], '', true);
+    } else {
+      h += R(`18% on ${fmt(taxableIncome)}`, grossTax, '', true);
+    }
+  }
+  h += `<tr class="sa-sub"><td>Gross tax</td><td>${fmt(grossTax)}</td></tr>`;
+
+  h += sp();
+  h += head('Rebates &amp; credits');
+  h += R('Primary rebate (all taxpayers)', -T.REBATE_PRIMARY, 'sa-neg');
+  if (age65 || age75) h += R('Secondary rebate (age 65–74)', -T.REBATE_SECONDARY, 'sa-neg');
+  if (age75)          h += R('Tertiary rebate (age 75+)', -T.REBATE_TERTIARY, 'sa-neg');
+  if (medCredit > 0)  h += R(`Medical Aid tax credit (${medMembers} member${medMembers > 1 ? 's' : ''} × 12 months)`, -medCredit, 'sa-neg');
+  h += `<tr class="sa-sub"><td>Income tax payable</td><td>${fmt(taxAfterRebates)}</td></tr>`;
+
+  if (dividends > 0) {
+    h += sp();
+    h += head('Dividends withholding tax (separate)');
+    h += R(`WHT at 20% on ${fmt(dividends)}`, dwtLiability);
+    h += `<tr class="sa-sub"><td>DWT liability</td><td>${fmt(dwtLiability)}</td></tr>`;
+  }
+
+  h += sp();
+  h += head('UIF (Unemployment Insurance Fund)');
+  h += R(`Employee contribution: 1% of ${fmt(Math.min(salary, uifCap))}${salary > uifCap ? ` (capped at ${fmt(uifCap)}/year)` : ''}`, uif, '', true);
+  h += `<tr class="sa-sub"><td>UIF due</td><td>${fmt(uif)}</td></tr>`;
+
+  h += sp();
+  h += `<tr class="sa-tot"><td>Total income tax + UIF liability</td><td>${fmt(totalLiability)}</td></tr>`;
+
+  if (totalPaid > 0) {
+    h += sp();
+    h += head('Tax already paid');
+    if (taxPaidPAYE        > 0) h += R('PAYE deducted by employer', -taxPaidPAYE, 'sa-neg');
+    if (taxPaidProvisional > 0) h += R('Provisional tax payments', -taxPaidProvisional, 'sa-neg');
+    if (dwtPaid            > 0) h += R('Dividends withholding tax paid', -dwtPaid, 'sa-neg');
+    h += `<tr class="sa-sub"><td>Total tax already paid</td><td style="color:var(--green)">−${fmt(totalPaid)}</td></tr>`;
+    h += `<tr class="sa-tot" style="color:${outstanding > 50 ? 'var(--red)' : outstanding < -50 ? 'var(--green)' : 'var(--ink)'}">
+      <td>${outstanding > 50 ? 'Balance due to SARS' : outstanding < -50 ? 'Refund due from SARS' : 'Broadly settled'}</td>
+      <td>${outstanding > 50 ? fmt(outstanding) : outstanding < -50 ? '−' + fmt(Math.abs(outstanding)) : '—'}</td>
+    </tr>`;
+
+    if (outstanding > 50) {
+      h += `</table><div style="background:var(--red-lt);border:1px solid #E0AAAA;border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-top:0.75rem;text-align:center;max-width:420px;margin-left:auto;margin-right:auto">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:0.35rem">Amount still to pay to SARS</div>
+        <div style="font-family:var(--serif);font-size:1.6rem;color:var(--red);line-height:1.1;margin-bottom:0.25rem">${fmt(outstanding)}</div>
+        <div style="font-size:11px;color:var(--red);opacity:0.8">Due by the relevant ITA34 / assessment date. Provisional taxpayers: 31 Jan and 30 Sep deadlines.</div>
+      </div><table class="sa">`;
+    } else if (outstanding < -50) {
+      h += `</table><div style="background:var(--green-lt);border:1px solid #B0D9C0;border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-top:0.75rem;text-align:center;max-width:420px;margin-left:auto;margin-right:auto">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:0.35rem">Refund due from SARS</div>
+        <div style="font-family:var(--serif);font-size:1.6rem;color:var(--green);line-height:1.1;margin-bottom:0.25rem">${fmt(Math.abs(outstanding))}</div>
+        <div style="font-size:11px;color:var(--green);opacity:0.8">Claim via your ITR12 return. SARS typically processes refunds within 72 hours of assessment.</div>
+      </div><table class="sa">`;
+    }
+  }
+
+  el('saTable').innerHTML = h;
+  el('saFooter').innerHTML =
+    `Income tax ${fmt(taxAfterRebates)} &nbsp;·&nbsp; UIF ${fmt(uif)}` +
+    (dividends > 0 ? ` &nbsp;·&nbsp; DWT ${fmt(dwtLiability)}` : '') +
+    (totalPaid > 0 ? ` &nbsp;·&nbsp; Already paid ${fmt(totalPaid)}` : '') +
+    (raDeduction > 0 ? ` &nbsp;|&nbsp; RA deduction ${fmt(raDeduction)}` : '') +
+    (medCredit > 0   ? ` &nbsp;|&nbsp; Medical credit ${fmt(medCredit)}` : '');
+}
+
+update();
+
+/* ══════════════════════════════════════════════════════
+   CHANGE PASSWORD MODAL
+   ══════════════════════════════════════════════════════ */
+function openPwModal() {
+  document.getElementById('pwNew').value = ''; document.getElementById('pwConfirm').value = '';
+  const msg = document.getElementById('pwMsg'); msg.className = 'modal-msg'; msg.textContent = '';
+  document.getElementById('pwSaveBtn').disabled = false;
+  document.getElementById('pwModal').classList.add('visible');
+  setTimeout(() => document.getElementById('pwNew').focus(), 120);
+}
+function closePwModal() { document.getElementById('pwModal').classList.remove('visible'); }
+function closePwModalIfOutside(e) { if (e.target === document.getElementById('pwModal')) closePwModal(); }
+async function changePassword() {
+  const pw1 = document.getElementById('pwNew').value;
+  const pw2 = document.getElementById('pwConfirm').value;
+  const msg = document.getElementById('pwMsg'); const btn = document.getElementById('pwSaveBtn');
+  msg.className = 'modal-msg'; msg.textContent = '';
+  if (pw1.length < 8) { msg.textContent = 'Password must be at least 8 characters.'; msg.classList.add('err','visible'); return; }
+  if (pw1 !== pw2)    { msg.textContent = 'Passwords do not match.'; msg.classList.add('err','visible'); return; }
+  btn.disabled = true; btn.textContent = 'Updating…';
+  const { error } = await sb.auth.updateUser({ password: pw1 });
+  btn.textContent = 'Update password';
+  if (error) { msg.textContent = 'Error: ' + (error.message || 'Could not update password.'); msg.classList.add('err','visible'); btn.disabled = false; }
+  else { msg.textContent = 'Password updated successfully.'; msg.classList.add('ok','visible'); setTimeout(closePwModal, 1800); btn.disabled = false; }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePwModal(); });
+document.getElementById('pwConfirm').addEventListener('keydown', e => { if (e.key === 'Enter') changePassword(); });
+</script>
+</body>
+</html>
