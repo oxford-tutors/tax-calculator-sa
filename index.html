@@ -765,14 +765,20 @@ let saveTimer = null;
 
 function getFigures() {
   const f = {};
-  FIELDS.forEach(id => { f[id] = parseFloat(document.getElementById(id)?.value) || 0; });
+  FIELDS.forEach(id => {
+    const val = parseFloat(document.getElementById(id)?.value);
+    if (val) f[id] = val; // only save non-zero values
+  });
   f._checks = getChecks();
   const mm = document.getElementById('medMembers');
   if (mm) f._medMembers = mm.value;
   return f;
 }
 function setFigures(f) {
-  FIELDS.forEach(id => { const el = document.getElementById(id); if (el && f[id] !== undefined) el.value = f[id]; });
+  FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && f[id]) el.value = f[id]; // only restore non-zero values; leave blank otherwise
+  });
   const mm = document.getElementById('medMembers');
   if (mm && f._medMembers) mm.value = f._medMembers;
   if (f._checks) setChecks(f._checks); else applyProfile();
