@@ -491,16 +491,24 @@ input[type=number] { -moz-appearance: textfield; }
     <div class="sidebar-card-body" style="background:var(--surface2)">
       <table style="width:100%;font-size:11px;font-family:var(--mono)">
         <tr><td style="color:var(--ink3);padding:1px 0">Tax-free threshold (under 65)</td><td style="text-align:right">R95,750</td></tr>
-        <tr><td style="color:var(--ink3);padding:1px 0">Primary rebate</td><td style="text-align:right">R17,235</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Tax-free threshold (65–74)</td><td style="text-align:right">R148,217</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Tax-free threshold (75+)</td><td style="text-align:right">R165,689</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">Primary rebate</td><td style="text-align:right;padding-top:5px">R17,235</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">Secondary rebate (65–74)</td><td style="text-align:right">R9,444</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">Tertiary rebate (75+)</td><td style="text-align:right">R3,145</td></tr>
-        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">Brackets</td><td style="text-align:right;padding-top:5px">18%–45%</td></tr>
-        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">RA deduction limit</td><td style="text-align:right;padding-top:5px">27.5% / R350k</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">Bracket 1: 18%</td><td style="text-align:right;padding-top:5px">R0–R237,100</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Bracket 2: 26%</td><td style="text-align:right">R237,101–R370,500</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Bracket 3: 31%</td><td style="text-align:right">R370,501–R512,800</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Bracket 4: 36%</td><td style="text-align:right">R512,801–R673,000</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Bracket 5: 39%</td><td style="text-align:right">R673,001–R857,900</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Bracket 6: 41%</td><td style="text-align:right">R857,901–R1,817,000</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0">Bracket 7: 45%</td><td style="text-align:right">above R1,817,000</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">RA deduction</td><td style="text-align:right;padding-top:5px">27.5% / R350,000 cap</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">CGT inclusion rate</td><td style="text-align:right">40%</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">CGT annual exclusion</td><td style="text-align:right">R40,000</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">Interest exemption (&lt;65)</td><td style="text-align:right">R23,800</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">Interest exemption (65+)</td><td style="text-align:right">R34,500</td></tr>
-        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">Dividends tax (WHT)</td><td style="text-align:right;padding-top:5px">20%</td></tr>
+        <tr><td style="color:var(--ink3);padding:1px 0;padding-top:5px">Dividends WHT</td><td style="text-align:right;padding-top:5px">20%</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">UIF (employee)</td><td style="text-align:right">1% (cap R17,712/mo)</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">Medical credit (first 2)</td><td style="text-align:right">R364/month each</td></tr>
         <tr><td style="color:var(--ink3);padding:1px 0">Medical credit (additional)</td><td style="text-align:right">R246/month each</td></tr>
@@ -532,7 +540,7 @@ input[type=number] { -moz-appearance: textfield; }
   <div class="sa302-wrap">
     <div class="sa302-header">
       <h3>SARS — Tax Computation</h3>
-      <span class="year">TAX YEAR 2025–26 (1 Mar 2025 – 28 Feb 2026)</span>
+      <span class="year">2026 TAX YEAR · 1 MAR 2025 – 28 FEB 2026</span>
     </div>
     <div class="sa302-body"><table class="sa" id="saTable"></table></div>
     <div class="sa302-footer" id="saFooter">Enter figures above to see your full SARS tax computation.</div>
@@ -581,13 +589,13 @@ const RATES = {
   YEAR: '2025–26',
   /* Tax brackets: [threshold, base_tax, marginal_rate] */
   BRACKETS: [
-    [0,         0,       0.18],
-    [237101,    42678,   0.26],
-    [370501,    77362,   0.31],
-    [512801,    121475,  0.36],
-    [673001,    179147,  0.39],
-    [857901,    251258,  0.41],
-    [1817001,   644489,  0.45],
+    [0,         0,       0.18],  // R0 – R237,100
+    [237101,    42678,   0.26],  // R237,101 – R370,500
+    [370501,    77362,   0.31],  // R370,501 – R512,800
+    [512801,    121475,  0.36],  // R512,801 – R673,000
+    [673001,    179147,  0.39],  // R673,001 – R857,900
+    [857901,    251258,  0.41],  // R857,901 – R1,817,000
+    [1817001,   644489,  0.45],  // R1,817,001 and above
   ],
   /* Rebates */
   REBATE_PRIMARY:   17235,
